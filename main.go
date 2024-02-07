@@ -12,7 +12,7 @@ import (
 func main() {
 	const filepathRoot = "."
 	const port = "8080"
-	db, err := database.CreateDB(".")
+	db, err := database.CreateDB("./")
 	if err != nil {
 		log.Fatalf("Failed to create database: %s", err)
 	}
@@ -30,6 +30,7 @@ func main() {
 	apiR.Get("/healthz", healthzHandler)
 	apiR.Get("/reset", cfgapi.metricsResetHandler)
 	//api_chirps.go
+	apiR.Get("/chirps", middlewareGetChirp(db))
 	apiR.Post("/chirps", middlewarePostChirp(db))
 
 	mainR.Mount("/api", apiR)

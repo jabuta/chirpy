@@ -14,9 +14,6 @@ func middlewarePostChirp(db *database.DB) http.HandlerFunc {
 		type requestVals struct {
 			Body string `json:"body"`
 		}
-		type validResponse struct {
-			CleanedBody string `json:"cleaned_body"`
-		}
 
 		reqBody := requestVals{}
 		err := json.NewDecoder(r.Body).Decode(&reqBody)
@@ -43,48 +40,26 @@ func middlewarePostChirp(db *database.DB) http.HandlerFunc {
 		}
 		cleanBody := removeBadWords(reqBody.Body, badWords)
 
-		respondWithJSON(w, http.StatusOK, validResponse{
-			CleanedBody: cleanBody,
-		})
+		chirp, err := db.CreateChirp(cleanBody)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		respondWithJSON(w, http.StatusCreated, chirp)
 	}
 }
 
-func postChirpHandler(w http.ResponseWriter, r *http.Request) {
-	type requestVals struct {
-		Body string `json:"body"`
-	}
-	type validResponse struct {
-		CleanedBody string `json:"cleaned_body"`
-	}
+func middlewareGetChirp(db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 
-	reqBody := requestVals{}
-	err := json.NewDecoder(r.Body).Decode(&reqBody)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
-		return
+		chirps, err := db.GetChirps()
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		respondWithJSON(w, http.StatusOK, chirps)
 	}
-
-	const maxChirpLength = 140
-
-	if len(reqBody.Body) > maxChirpLength {
-		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
-		return
-	}
-	if len(reqBody.Body) <= 0 {
-		respondWithError(w, http.StatusBadRequest, "chirp where?")
-		return
-	}
-
-	badWords := []string{
-		"kerfuffle",
-		"sharbert",
-		"fornax",
-	}
-	cleanBody := removeBadWords(reqBody.Body, badWords)
-
-	respondWithJSON(w, http.StatusOK, validResponse{
-		CleanedBody: removeBadWords(cleanBody, badWords),
-	})
 }
 
 func respondWithError(w http.ResponseWriter, code int, msg string) {
