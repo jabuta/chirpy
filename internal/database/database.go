@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 	"sync"
@@ -21,25 +22,26 @@ type Chirp struct {
 	ID   int    `json:"id"`
 }
 
-func CreateDB(path string) (*DB, error) {
-	var db DB
-	filePath := path + "database.json"
-	f, err := os.Create(filePath)
-	if err != nil {
-		return &DB{}, err
+func NewDB(filePath string) (*DB, error) {
+	db := &DB{
+		path: filePath,
+		mux:  &sync.RWMutex{},
 	}
-	emptyDB, err := json.Marshal(DBstructure{Chirps: map[int]Chirp{}})
-	if err != nil {
-		return nil, err
+	err := db.ensureDB()
+	return db, err
+}
+
+func (db *DB) ensureDB() error {
+	_, err := os.ReadFile(db.path)
+	if errors.Is(err, os.ErrNotExist) {
+		return db.createDB()
 	}
-	f.Write(emptyDB)
-	err = f.Close()
-	if err != nil {
-		return &DB{}, err
-	}
-	db.path = filePath
-	db.mux = &sync.RWMutex{}
-	return &db, nil
+	return err
+}
+
+func (db *DB) createDB() error {
+	emptyDB := DBstructure{Chirps: map[int]Chirp{}}
+	return db.save(emptyDB)
 }
 
 func (db *DB) load() (DBstructure, error) {

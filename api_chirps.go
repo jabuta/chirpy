@@ -5,61 +5,54 @@ import (
 	"log"
 	"net/http"
 	"strings"
-
-	"github.com/jabuta/chirpy/internal/database"
 )
 
-func middlewarePostChirp(db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		type requestVals struct {
-			Body string `json:"body"`
-		}
-
-		reqBody := requestVals{}
-		err := json.NewDecoder(r.Body).Decode(&reqBody)
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		const maxChirpLength = 140
-
-		if len(reqBody.Body) > maxChirpLength {
-			respondWithError(w, http.StatusBadRequest, "Chirp is too long")
-			return
-		}
-		if len(reqBody.Body) <= 0 {
-			respondWithError(w, http.StatusBadRequest, "chirp where?")
-			return
-		}
-
-		badWords := []string{
-			"kerfuffle",
-			"sharbert",
-			"fornax",
-		}
-		cleanBody := removeBadWords(reqBody.Body, badWords)
-
-		chirp, err := db.CreateChirp(cleanBody)
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		respondWithJSON(w, http.StatusCreated, chirp)
+func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
+	type requestVals struct {
+		Body string `json:"body"`
 	}
+
+	reqBody := requestVals{}
+	err := json.NewDecoder(r.Body).Decode(&reqBody)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	const maxChirpLength = 140
+
+	if len(reqBody.Body) > maxChirpLength {
+		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
+		return
+	}
+	if len(reqBody.Body) <= 0 {
+		respondWithError(w, http.StatusBadRequest, "chirp where?")
+		return
+	}
+
+	badWords := []string{
+		"kerfuffle",
+		"sharbert",
+		"fornax",
+	}
+	cleanBody := removeBadWords(reqBody.Body, badWords)
+
+	chirp, err := cfg.db.CreateChirp(cleanBody)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusCreated, chirp)
 }
 
-func middlewareGetChirp(db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		chirps, err := db.GetChirps()
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		respondWithJSON(w, http.StatusOK, chirps)
+func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
+	chirps, err := cfg.db.GetChirps()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
+	respondWithJSON(w, http.StatusOK, chirps)
 }
 
 func respondWithError(w http.ResponseWriter, code int, msg string) {

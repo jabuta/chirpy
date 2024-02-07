@@ -13,7 +13,3 @@ func (cfg *apiConfig) middleWareMetricsInc(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
-type apiConfig struct {
-	fileserverHits int
-}

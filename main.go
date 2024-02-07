@@ -9,15 +9,23 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+type apiConfig struct {
+	fileserverHits int
+	db             *database.DB
+}
+
 func main() {
 	const filepathRoot = "."
 	const port = "8080"
-	db, err := database.CreateDB("./")
+
+	db, err := database.NewDB("database.json")
 	if err != nil {
 		log.Fatalf("Failed to create database: %s", err)
 	}
-
-	cfgapi := &apiConfig{fileserverHits: 0}
+	cfgapi := &apiConfig{
+		fileserverHits: 0,
+		db:             db,
+	}
 
 	// main app router
 	mainR := chi.NewRouter()
@@ -30,8 +38,8 @@ func main() {
 	apiR.Get("/healthz", healthzHandler)
 	apiR.Get("/reset", cfgapi.metricsResetHandler)
 	//api_chirps.go
-	apiR.Get("/chirps", middlewareGetChirp(db))
-	apiR.Post("/chirps", middlewarePostChirp(db))
+	apiR.Get("/chirps", cfgapi.getChirps)
+	apiR.Post("/chirps", cfgapi.postChirp)
 
 	mainR.Mount("/api", apiR)
 
