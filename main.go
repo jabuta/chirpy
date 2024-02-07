@@ -20,8 +20,9 @@ func main() {
 
 	apiR := chi.NewRouter()
 	apiR.Get("/healthz", healthzHandler)
-
 	apiR.Get("/reset", cfgapi.metricsResetHandler)
+	apiR.Post("/validate_chirp", apiValidatorHandler)
+
 	mainR.Mount("/api", apiR)
 
 	adminR := chi.NewRouter()
