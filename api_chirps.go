@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +49,7 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
-	chirps, err := cfg.db.GetChirps()
+	chirps, err := cfg.db.GetChirpsList()
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -55,28 +57,23 @@ func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, chirps)
 }
 
-func respondWithError(w http.ResponseWriter, code int, msg string) {
-	if code > 499 {
-		log.Printf("Responding with 5XX error: %s", msg)
-	}
-	type errorResponse struct {
-		Error string `json:"error"`
-	}
-	respondWithJSON(w, code, errorResponse{
-		Error: msg,
-	})
-}
-
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	dat, err := json.Marshal(payload)
+func (cfg *apiConfig) getChirp(w http.ResponseWriter, r *http.Request) {
+	chirpStuct, err := cfg.db.GetChirpsMap()
 	if err != nil {
-		log.Printf("Error Marshalling JSON: %s", err)
-		w.WriteHeader(500)
+		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	w.WriteHeader(code)
-	w.Write(dat)
+	i, err := strconv.Atoi(chi.URLParam(r, "chirpID"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	chirp, ok := chirpStuct[i]
+	if !ok {
+		respondWithError(w, http.StatusNotFound, http.StatusText(http.StatusNotFound))
+		return
+	}
+	respondWithJSON(w, http.StatusOK, chirp)
 }
 
 func removeBadWords(text string, badWords []string) string {

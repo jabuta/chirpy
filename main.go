@@ -17,8 +17,10 @@ type apiConfig struct {
 func main() {
 	const filepathRoot = "."
 	const port = "8080"
+	const defaultDbPath = "database.json"
+	dbPath := debugMode(defaultDbPath)
 
-	db, err := database.NewDB("database.json")
+	db, err := database.NewDB(dbPath)
 	if err != nil {
 		log.Fatalf("Failed to create database: %s", err)
 	}
@@ -40,6 +42,12 @@ func main() {
 	//api_chirps.go
 	apiR.Get("/chirps", cfgapi.getChirps)
 	apiR.Post("/chirps", cfgapi.postChirp)
+	apiR.Get("/chirps/{chirpID}", cfgapi.getChirp)
+
+	//api_users.go
+	apiR.Get("/users", cfgapi.getUsers)
+	apiR.Post("/users", cfgapi.postUser)
+	apiR.Get("/users/{chirpID}", cfgapi.getUser)
 
 	mainR.Mount("/api", apiR)
 

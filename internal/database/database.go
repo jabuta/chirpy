@@ -3,7 +3,6 @@ package database
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"os"
 	"sync"
 )
@@ -15,11 +14,7 @@ type DB struct {
 
 type DBstructure struct {
 	Chirps map[int]Chirp `json:"chirps"`
-}
-
-type Chirp struct {
-	Body string `json:"body"`
-	ID   int    `json:"id"`
+	Users  map[int]User  `json:"users"`
 }
 
 func NewDB(filePath string) (*DB, error) {
@@ -40,24 +35,14 @@ func (db *DB) ensureDB() error {
 }
 
 func (db *DB) createDB() error {
-	emptyDB := DBstructure{Chirps: map[int]Chirp{}}
-	return db.save(emptyDB)
+	emptyDB := DBstructure{
+		Chirps: map[int]Chirp{},
+		Users:  map[int]User{},
+	}
+	return db.saveDB(emptyDB)
 }
 
-func (db *DB) load() (DBstructure, error) {
-	rawDb, err := os.ReadFile(db.path)
-	if err != nil {
-		return DBstructure{}, err
-	}
-	parsedDB := DBstructure{}
-	err = json.Unmarshal(rawDb, &parsedDB)
-	if err != nil {
-		return DBstructure{}, err
-	}
-	return parsedDB, nil
-}
-
-func (db *DB) save(memDB DBstructure) error {
+func (db *DB) saveDB(memDB DBstructure) error {
 	rawDB, err := json.Marshal(memDB)
 	if err != nil {
 		return err
@@ -69,48 +54,15 @@ func (db *DB) save(memDB DBstructure) error {
 	return nil
 }
 
-func (db *DB) CreateChirp(body string) (Chirp, error) {
-
-	db.mux.Lock()
-	defer db.mux.Unlock()
-
-	memDB, err := db.load()
+func (db *DB) loadDB() (DBstructure, error) {
+	rawDb, err := os.ReadFile(db.path)
 	if err != nil {
-		log.Print("db load err")
-		return Chirp{}, err
+		return DBstructure{}, err
 	}
-	largestK := 0
-	for k := range memDB.Chirps {
-		if k > largestK {
-			largestK = k
-		}
-	}
-	largestK++
-	memDB.Chirps[largestK] = Chirp{
-		Body: body,
-		ID:   largestK,
-	}
-
-	err = db.save(memDB)
+	parsedDB := DBstructure{}
+	err = json.Unmarshal(rawDb, &parsedDB)
 	if err != nil {
-		return Chirp{}, err
+		return DBstructure{}, err
 	}
-
-	return memDB.Chirps[largestK], nil
-}
-
-func (db *DB) GetChirps() ([]Chirp, error) {
-	db.mux.RLock()
-	defer db.mux.RUnlock()
-	memDB, err := db.load()
-	if err != nil {
-		return []Chirp{}, err
-	}
-	log.Print(memDB)
-	chirpList := make([]Chirp, 0, len(memDB.Chirps))
-	for _, chirp := range memDB.Chirps {
-		chirpList = append(chirpList, chirp)
-	}
-	log.Print(chirpList)
-	return chirpList, nil
+	return parsedDB, nil
 }
