@@ -4,12 +4,19 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/jabuta/chirpy/internal/database"
+
 	"github.com/go-chi/chi/v5"
 )
 
 func main() {
 	const filepathRoot = "."
 	const port = "8080"
+	db, err := database.CreateDB(".")
+	if err != nil {
+		log.Fatalf("Failed to create database: %s", err)
+	}
+
 	cfgapi := &apiConfig{fileserverHits: 0}
 
 	// main app router
@@ -23,7 +30,7 @@ func main() {
 	apiR.Get("/healthz", healthzHandler)
 	apiR.Get("/reset", cfgapi.metricsResetHandler)
 	//api_chirps.go
-	apiR.Post("/chirps", postChirpHandler)
+	apiR.Post("/chirps", middlewarePostChirp(db))
 
 	mainR.Mount("/api", apiR)
 

@@ -19,18 +19,22 @@ type Chirp struct {
 	ID   int    `json:"id"`
 }
 
-func CreateDB(path string) (DB, error) {
+func CreateDB(path string) (*DB, error) {
 	var db DB
 	filePath := path + "database.json"
 	f, err := os.Create(filePath)
 	if err != nil {
-		return DB{}, err
+		return &DB{}, err
 	}
 	err = f.Close()
 	if err != nil {
-		return DB{}, err
+		return &DB{}, err
 	}
 	db.path = filePath
 	db.mux = &sync.RWMutex{}
-	return db, nil
+	return &db, nil
+}
+
+func (db *DB) createChirp(body string) (Chirp, error) {
+	return Chirp{}, nil
 }

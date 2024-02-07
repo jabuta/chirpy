@@ -1,12 +1,53 @@
 package main
 
 import (
-	database "command-line-arguments/home/felo/workspace/github.com/jabuta/chirpy/internal/database/main.go"
 	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/jabuta/chirpy/internal/database"
 )
+
+func middlewarePostChirp(db *database.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		type requestVals struct {
+			Body string `json:"body"`
+		}
+		type validResponse struct {
+			CleanedBody string `json:"cleaned_body"`
+		}
+
+		reqBody := requestVals{}
+		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		const maxChirpLength = 140
+
+		if len(reqBody.Body) > maxChirpLength {
+			respondWithError(w, http.StatusBadRequest, "Chirp is too long")
+			return
+		}
+		if len(reqBody.Body) <= 0 {
+			respondWithError(w, http.StatusBadRequest, "chirp where?")
+			return
+		}
+
+		badWords := []string{
+			"kerfuffle",
+			"sharbert",
+			"fornax",
+		}
+		cleanBody := removeBadWords(reqBody.Body, badWords)
+
+		respondWithJSON(w, http.StatusOK, validResponse{
+			CleanedBody: cleanBody,
+		})
+	}
+}
 
 func postChirpHandler(w http.ResponseWriter, r *http.Request) {
 	type requestVals struct {
@@ -41,10 +82,8 @@ func postChirpHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	cleanBody := removeBadWords(reqBody.Body, badWords)
 
-	chirp := database.CreateChirp()
-
 	respondWithJSON(w, http.StatusOK, validResponse{
-		CleanedBody: removeBadWords(reqBody.Body, badWords),
+		CleanedBody: removeBadWords(cleanBody, badWords),
 	})
 }
 
