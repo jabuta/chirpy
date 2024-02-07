@@ -1,13 +1,14 @@
 package main
 
 import (
+	database "command-line-arguments/home/felo/workspace/github.com/jabuta/chirpy/internal/database/main.go"
 	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
 )
 
-func apiValidatorHandler(w http.ResponseWriter, r *http.Request) {
+func postChirpHandler(w http.ResponseWriter, r *http.Request) {
 	type requestVals struct {
 		Body string `json:"body"`
 	}
@@ -38,6 +39,10 @@ func apiValidatorHandler(w http.ResponseWriter, r *http.Request) {
 		"sharbert",
 		"fornax",
 	}
+	cleanBody := removeBadWords(reqBody.Body, badWords)
+
+	chirp := database.CreateChirp()
+
 	respondWithJSON(w, http.StatusOK, validResponse{
 		CleanedBody: removeBadWords(reqBody.Body, badWords),
 	})
