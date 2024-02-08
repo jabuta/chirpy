@@ -3,24 +3,40 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/jabuta/chirpy/internal/database"
+	"golang.org/x/crypto/bcrypt"
 )
 
-func (cfg *apiConfig) postUser(w http.ResponseWriter, r *http.Request) {
-	type requestVals struct {
-		Email string `json:"email"`
-	}
+type userRequestVals struct {
+	Password         string `json:"password"`
+	Email            string `json:"email"`
+	ExpiresInSeconds int    `json:"expires_in_seconds"`
+}
 
-	reqBody := requestVals{}
+func (cfg *apiConfig) newUser(w http.ResponseWriter, r *http.Request) {
+	reqBody := userRequestVals{}
 	err := json.NewDecoder(r.Body).Decode(&reqBody)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	if len([]byte(reqBody.Password)) > 72 {
+		respondWithError(w, http.StatusBadRequest, "Password is too long")
+		return
+	}
+	if len(reqBody.Password) == 0 {
+		respondWithError(w, http.StatusBadRequest, "Password is too short")
+		return
+	}
 
-	user, err := cfg.db.CreateUser(reqBody.Email)
+	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(reqBody.Password), 0)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	user, err := cfg.db.CreateUser(reqBody.Email, hashedPwd)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -29,30 +45,33 @@ func (cfg *apiConfig) postUser(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusCreated, user)
 }
 
-func (cfg *apiConfig) getUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := cfg.db.GetUsersList()
+func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
+	reqBody := userRequestVals{}
+	err := json.NewDecoder(r.Body).Decode(&reqBody)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respondWithJSON(w, http.StatusOK, users)
-}
+	if len([]byte(reqBody.Password)) > 72 {
+		respondWithError(w, http.StatusBadRequest, "Password is too long")
+		return
+	}
+	if len(reqBody.Password) == 0 {
+		respondWithError(w, http.StatusBadRequest, "Password is too short")
+		return
+	}
 
-func (cfg *apiConfig) getUser(w http.ResponseWriter, r *http.Request) {
-	userStuct, err := cfg.db.GetUsersMap()
+	user, err := cfg.db.ReadUser(reqBody.Email)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		respondWithError(w, http.StatusUnauthorized, "user not found")
 		return
 	}
-	i, err := strconv.Atoi(chi.URLParam(r, "userID"))
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+	if err := bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(reqBody.Password)); err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
-	user, ok := userStuct[i]
-	if !ok {
-		respondWithError(w, http.StatusNotFound, http.StatusText(http.StatusNotFound))
-		return
-	}
-	respondWithJSON(w, http.StatusOK, user)
+	respondWithJSON(w, http.StatusOK, database.ReturnUser{
+		Email: user.Email,
+		ID:    user.ID,
+	})
 }

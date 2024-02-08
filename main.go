@@ -45,13 +45,12 @@ func main() {
 	apiR.Get("/chirps/{chirpID}", cfgapi.getChirp)
 
 	//api_users.go
-	apiR.Get("/users", cfgapi.getUsers)
-	apiR.Post("/users", cfgapi.postUser)
-	apiR.Get("/users/{chirpID}", cfgapi.getUser)
+	apiR.Post("/users", cfgapi.newUser)
+	apiR.Post("/login", cfgapi.loginUser)
 
 	mainR.Mount("/api", apiR)
 
-	//metrics router metrics.go
+	//metrics router metrics.goS
 	adminR := chi.NewRouter()
 	adminR.Get("/metrics", cfgapi.metricsHandler)
 	mainR.Mount("/admin", adminR)
