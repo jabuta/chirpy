@@ -3,8 +3,10 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/jabuta/chirpy/internal/database"
+	"github.com/joho/godotenv"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -12,12 +14,15 @@ import (
 type apiConfig struct {
 	fileserverHits int
 	db             *database.DB
+	jwtSecret      string
 }
 
 func main() {
 	const filepathRoot = "."
 	const port = "8080"
 	const defaultDbPath = "database.json"
+	godotenv.Load()
+
 	dbPath := debugMode(defaultDbPath)
 
 	db, err := database.NewDB(dbPath)
@@ -27,6 +32,7 @@ func main() {
 	cfgapi := &apiConfig{
 		fileserverHits: 0,
 		db:             db,
+		jwtSecret:      os.Getenv("JWT_SECRET"),
 	}
 
 	// main app router
@@ -46,6 +52,7 @@ func main() {
 
 	//api_users.go
 	apiR.Post("/users", cfgapi.newUser)
+	apiR.Put("/users", cfgapi.modifyUser)
 	apiR.Post("/login", cfgapi.loginUser)
 
 	mainR.Mount("/api", apiR)
