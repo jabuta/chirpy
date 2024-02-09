@@ -9,17 +9,19 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func CreateJwtString(uid int, key string, issuer string) (string, error) {
-	var expires time.Duration
-	switch issuer {
-	case "chirpy-access":
-		expires = time.Hour * 1
-	case "chirpy-refresh":
-		expires = time.Hour * 24 * 60
-	default:
-		return "", errors.New("invalid issuer")
-	}
+func CreateAccessToken(uid int, key string) (string, error) {
+	issuer := "chirpy-access"
+	expires := time.Hour * 1
+	return createJwtString(uid, key, issuer, expires)
+}
 
+func CreateRefreshToken(uid int, key string) (string, error) {
+	issuer := "chirpy-refresh"
+	expires := time.Hour * 24 * 60
+	return createJwtString(uid, key, issuer, expires)
+}
+
+func createJwtString(uid int, key string, issuer string, expires time.Duration) (string, error) {
 	signingMethod := jwt.SigningMethodHS256
 	registeredClaims := jwt.RegisteredClaims{
 		Issuer:    issuer,
@@ -35,23 +37,23 @@ func CreateJwtString(uid int, key string, issuer string) (string, error) {
 	return signedString, nil
 }
 
-func CheckToken(tokenString string, key string) (int, error) {
+func CheckToken(tokenString string, key string) (int, string, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(t *jwt.Token) (interface{}, error) {
 		return []byte(key), nil
 	})
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !ok {
-		return 0, errors.New("no claims retreived")
+		return 0, "", errors.New("no claims retreived")
 	}
 	if claims.Issuer != "chirpy" || claims.Subject == "" {
-		return 0, errors.New("invalid issuer, or subject")
+		return 0, "", errors.New("invalid issuer, or subject")
 	}
 	uid, err := strconv.Atoi(claims.Subject)
 	if err != nil {
-		return 0, errors.New("invalid uid")
+		return 0, "", errors.New("invalid uid")
 	}
-	return uid, nil
+	return uid, claims.Issuer, nil
 }

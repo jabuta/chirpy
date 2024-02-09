@@ -22,3 +22,5 @@ go.work
 
 #Temp Database
 *database.json
+
+*.env

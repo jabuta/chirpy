@@ -76,12 +76,12 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenAccess, err := auth.CreateJwtString(user.ID, cfg.jwtSecret, "chirpy-access")
+	tokenAccess, err := auth.CreateAccessToken(user.ID, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
-	tokenRefresh, err := auth.CreateJwtString(user.ID, cfg.jwtSecret, "chirpy-refresh")
+	tokenRefresh, err := auth.CreateRefreshToken(user.ID, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
