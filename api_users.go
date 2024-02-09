@@ -94,25 +94,26 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (cfg *apiConfig) modifyUser(w http.ResponseWriter, r *http.Request) {
-	reqBody := userRequestVals{}
-	err := json.NewDecoder(r.Body).Decode(&reqBody)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
+func (cfg *apiConfig) putUser(w http.ResponseWriter, r *http.Request) {
 	//get auth from header
 	if len(strings.Fields(r.Header.Get("Authorization"))) != 2 {
 		respondWithError(w, http.StatusBadRequest, "token bad format")
 		return
 	}
 	authToken := strings.Fields(r.Header.Get("Authorization"))[1]
-	uid, err := auth.CheckToken(authToken, cfg.jwtSecret)
+	uid, err := auth.CheckAccessToken(authToken, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
+
+	reqBody := userRequestVals{}
+	err = json.NewDecoder(r.Body).Decode(&reqBody)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	hashedPassword, err := auth.HashPassword(reqBody.Password)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "error hashing password")
@@ -124,4 +125,43 @@ func (cfg *apiConfig) modifyUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondWithJSON(w, http.StatusOK, retuser)
+}
+
+func (cfg *apiConfig) apiRefresh(w http.ResponseWriter, r *http.Request) {
+	type accesTokenResponse struct {
+		Token string `json:"token"`
+	}
+
+	//get auth from header
+	if len(strings.Fields(r.Header.Get("Authorization"))) != 2 {
+		respondWithError(w, http.StatusBadRequest, "token bad format")
+		return
+	}
+	authToken := strings.Fields(r.Header.Get("Authorization"))[1]
+	uid, err := auth.CheckRefreshToken(authToken, cfg.jwtSecret, cfg.db)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	accessToken, err := auth.CreateAccessToken(uid, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "error creating token")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, accesTokenResponse{Token: accessToken})
+}
+
+func (cfg *apiConfig) apiRevoke(w http.ResponseWriter, r *http.Request) {
+	if len(strings.Fields(r.Header.Get("Authorization"))) != 2 {
+		respondWithError(w, http.StatusBadRequest, "token bad format")
+		return
+	}
+	authToken := strings.Fields(r.Header.Get("Authorization"))[1]
+
+	if err := auth.RevokeToken(authToken, cfg.jwtSecret, cfg.db); err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, "token revoked")
 }

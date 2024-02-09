@@ -52,8 +52,10 @@ func main() {
 
 	//api_users.go
 	apiR.Post("/users", cfgapi.newUser)
-	apiR.Put("/users", cfgapi.modifyUser)
+	apiR.Put("/users", cfgapi.putUser)
 	apiR.Post("/login", cfgapi.loginUser)
+	apiR.Post("/refresh", cfgapi.apiRefresh)
+	apiR.Post("/revoke", cfgapi.apiRevoke)
 
 	mainR.Mount("/api", apiR)
 

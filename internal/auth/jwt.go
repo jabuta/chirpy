@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jabuta/chirpy/internal/database"
 )
 
 func CreateAccessToken(uid int, key string) (string, error) {
@@ -37,7 +38,33 @@ func createJwtString(uid int, key string, issuer string, expires time.Duration) 
 	return signedString, nil
 }
 
-func CheckToken(tokenString string, key string) (int, string, error) {
+func CheckAccessToken(tokenString string, key string) (int, error) {
+	uid, issuer, err := verifyToken(tokenString, key)
+	if err != nil {
+		return 0, err
+	}
+	if issuer != "chirpy-access" {
+		return 0, errors.New("invalid token issuer")
+	}
+	return uid, nil
+}
+
+func CheckRefreshToken(tokenString string, key string, db *database.DB) (int, error) {
+	uid, issuer, err := verifyToken(tokenString, key)
+	if err != nil {
+		return 0, err
+	}
+	if issuer != "chirpy-refresh" {
+		return 0, errors.New("invalid token issuer")
+	}
+	err = db.TokenIsValid(tokenString)
+	if err != nil {
+		return 0, err
+	}
+	return uid, nil
+}
+
+func verifyToken(tokenString string, key string) (int, string, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(t *jwt.Token) (interface{}, error) {
 		return []byte(key), nil
 	})
@@ -48,7 +75,7 @@ func CheckToken(tokenString string, key string) (int, string, error) {
 	if !ok {
 		return 0, "", errors.New("no claims retreived")
 	}
-	if claims.Issuer != "chirpy" || claims.Subject == "" {
+	if claims.Subject == "" {
 		return 0, "", errors.New("invalid issuer, or subject")
 	}
 	uid, err := strconv.Atoi(claims.Subject)
@@ -56,4 +83,12 @@ func CheckToken(tokenString string, key string) (int, string, error) {
 		return 0, "", errors.New("invalid uid")
 	}
 	return uid, claims.Issuer, nil
+}
+
+func RevokeToken(token string, secret string, db *database.DB) error {
+	if _, err := CheckRefreshToken(token, secret, db); err != nil {
+		return err
+	}
+	err := db.AddRevocation(token)
+	return err
 }

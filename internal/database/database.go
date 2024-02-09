@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"sync"
+	"time"
 )
 
 type DB struct {
@@ -13,8 +14,9 @@ type DB struct {
 }
 
 type DBstructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
-	Users  map[int]User  `json:"users"`
+	Chirps map[int]Chirp        `json:"chirps"`
+	Users  map[int]User         `json:"users"`
+	Tokens map[string]time.Time `json:"token"`
 }
 
 func NewDB(filePath string) (*DB, error) {
@@ -38,6 +40,7 @@ func (db *DB) createDB() error {
 	emptyDB := DBstructure{
 		Chirps: map[int]Chirp{},
 		Users:  map[int]User{},
+		Tokens: map[string]time.Time{},
 	}
 	return db.saveDB(emptyDB)
 }
