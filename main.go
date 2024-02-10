@@ -49,6 +49,7 @@ func main() {
 	apiR.Get("/chirps", cfgapi.getChirps)
 	apiR.Post("/chirps", cfgapi.postChirp)
 	apiR.Get("/chirps/{chirpID}", cfgapi.getChirp)
+	apiR.Delete("/chirps/{chirpID}", cfgapi.deleteChirp)
 
 	//api_users.go
 	apiR.Post("/users", cfgapi.newUser)

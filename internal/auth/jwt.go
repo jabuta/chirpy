@@ -3,7 +3,9 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -91,4 +93,13 @@ func RevokeToken(token string, secret string, db *database.DB) error {
 	}
 	err := db.AddRevocation(token)
 	return err
+}
+
+func CheckHeaderAuth(r *http.Request, token string) (int, error) {
+	if len(strings.Fields(r.Header.Get("Authorization"))) != 2 {
+
+		return 0, errors.New("Token Invalid")
+	}
+	authToken := strings.Fields(r.Header.Get("Authorization"))[1]
+	return CheckAccessToken(authToken, token)
 }

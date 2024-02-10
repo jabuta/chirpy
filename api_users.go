@@ -96,12 +96,7 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) putUser(w http.ResponseWriter, r *http.Request) {
 	//get auth from header
-	if len(strings.Fields(r.Header.Get("Authorization"))) != 2 {
-		respondWithError(w, http.StatusBadRequest, "token bad format")
-		return
-	}
-	authToken := strings.Fields(r.Header.Get("Authorization"))[1]
-	uid, err := auth.CheckAccessToken(authToken, cfg.jwtSecret)
+	uid, err := auth.CheckHeaderAuth(r, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
@@ -132,12 +127,7 @@ func (cfg *apiConfig) apiRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get auth from header
-	if len(strings.Fields(r.Header.Get("Authorization"))) != 2 {
-		respondWithError(w, http.StatusBadRequest, "token bad format")
-		return
-	}
-	authToken := strings.Fields(r.Header.Get("Authorization"))[1]
-	uid, err := auth.CheckRefreshToken(authToken, cfg.jwtSecret, cfg.db)
+	uid, err := auth.CheckHeaderAuth(r, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return

@@ -7,15 +7,22 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jabuta/chirpy/internal/auth"
 )
 
 func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 	type requestVals struct {
 		Body string `json:"body"`
 	}
+	//get auth from header
+	uid, err := auth.CheckHeaderAuth(r, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
 
 	reqBody := requestVals{}
-	err := json.NewDecoder(r.Body).Decode(&reqBody)
+	err = json.NewDecoder(r.Body).Decode(&reqBody)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -39,13 +46,42 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 	}
 	cleanBody := removeBadWords(reqBody.Body, badWords)
 
-	chirp, err := cfg.db.CreateChirp(cleanBody)
+	chirp, err := cfg.db.CreateChirp(cleanBody, uid)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	respondWithJSON(w, http.StatusCreated, chirp)
+}
+
+func (cfg *apiConfig) deleteChirp(w http.ResponseWriter, r *http.Request) {
+	//get auth from header
+	uid, err := auth.CheckHeaderAuth(r, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	chirpStuct, err := cfg.db.GetChirpsMap()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	i, err := strconv.Atoi(chi.URLParam(r, "chirpID"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if chirp, ok := chirpStuct[i]; !ok || chirp.AuthorID != uid {
+		respondWithError(w, http.StatusForbidden, "unauthorized")
+		return
+	}
+	rmchirp, err := cfg.db.RemoveChirp(i)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondWithJSON(w, http.StatusOK, rmchirp)
 }
 
 func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
