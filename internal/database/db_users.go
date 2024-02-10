@@ -9,11 +9,15 @@ type User struct {
 	Email        string `json:"email"`
 	PasswordHash string `json:"passwordHash"`
 	ID           int    `json:"id"`
+	ChirpyRed    bool   `json:"is_chirpy_red"`
 }
 type ReturnUser struct {
-	Email string `json:"email"`
-	ID    int    `json:"id"`
+	Email     string `json:"email"`
+	ID        int    `json:"id"`
+	ChirpyRed bool   `json:"is_chirpy_red"`
 }
+
+var UserNotFound = errors.New("user Not Found")
 
 func (db *DB) CreateUser(email string, hashedPwd string) (ReturnUser, error) {
 	db.mux.Lock()
@@ -36,6 +40,7 @@ func (db *DB) CreateUser(email string, hashedPwd string) (ReturnUser, error) {
 		Email:        email,
 		PasswordHash: hashedPwd,
 		ID:           uid,
+		ChirpyRed:    false,
 	}
 
 	err = db.saveDB(memDB)
@@ -44,8 +49,9 @@ func (db *DB) CreateUser(email string, hashedPwd string) (ReturnUser, error) {
 	}
 
 	return ReturnUser{
-		Email: memDB.Users[uid].Email,
-		ID:    memDB.Users[uid].ID,
+		Email:     memDB.Users[uid].Email,
+		ID:        memDB.Users[uid].ID,
+		ChirpyRed: memDB.Users[uid].ChirpyRed,
 	}, nil
 }
 
@@ -73,20 +79,50 @@ func (db *DB) UpdateUser(uid int, email string, passwordHash string) (ReturnUser
 		return ReturnUser{}, err
 	}
 
-	if _, ok := memDB.Users[uid]; !ok {
+	if user, ok := memDB.Users[uid]; !ok {
+		return ReturnUser{}, err
+	} else {
+		if email != "" {
+			user.Email = email
+		}
+		if passwordHash != "" {
+			user.PasswordHash = passwordHash
+		}
+
+		memDB.Users[uid] = user
+	}
+
+	if err := db.saveDB(memDB); err != nil {
 		return ReturnUser{}, err
 	}
-	memDB.Users[uid] = User{
-		ID:           uid,
-		Email:        email,
-		PasswordHash: passwordHash,
+	return ReturnUser{
+		Email:     memDB.Users[uid].Email,
+		ID:        memDB.Users[uid].ID,
+		ChirpyRed: memDB.Users[uid].ChirpyRed,
+	}, nil
+}
+
+func (db *DB) MakeRed(uid int) (ReturnUser, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+	memDB, err := db.loadDB()
+	if err != nil {
+		log.Print("db load err")
+		return ReturnUser{}, err
+	}
+
+	if user, ok := memDB.Users[uid]; !ok {
+		return ReturnUser{}, UserNotFound
+	} else {
+		user.ChirpyRed = true
+		memDB.Users[uid] = user
 	}
 	if err := db.saveDB(memDB); err != nil {
 		return ReturnUser{}, err
 	}
 	return ReturnUser{
-		Email: email,
-		ID:    uid,
+		Email:     memDB.Users[uid].Email,
+		ID:        memDB.Users[uid].ID,
+		ChirpyRed: memDB.Users[uid].ChirpyRed,
 	}, nil
-
 }

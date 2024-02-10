@@ -103,3 +103,14 @@ func CheckHeaderAuth(r *http.Request, token string) (int, error) {
 	authToken := strings.Fields(r.Header.Get("Authorization"))[1]
 	return CheckAccessToken(authToken, token)
 }
+
+func CheckHeaderApi(r *http.Request, token string) error {
+	headerApi := strings.Fields(r.Header.Get("Authorization"))
+	if len(headerApi) != 2 {
+		return errors.New("Token Invalid")
+	}
+	if headerApi[1] != token {
+		return errors.New("Token Bad")
+	}
+	return nil
+}

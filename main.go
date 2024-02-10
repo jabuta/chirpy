@@ -15,6 +15,7 @@ type apiConfig struct {
 	fileserverHits int
 	db             *database.DB
 	jwtSecret      string
+	polka_key      string
 }
 
 func main() {
@@ -33,6 +34,7 @@ func main() {
 		fileserverHits: 0,
 		db:             db,
 		jwtSecret:      os.Getenv("JWT_SECRET"),
+		polka_key:      os.Getenv("POLKA_API"),
 	}
 
 	// main app router
@@ -57,6 +59,9 @@ func main() {
 	apiR.Post("/login", cfgapi.loginUser)
 	apiR.Post("/refresh", cfgapi.apiRefresh)
 	apiR.Post("/revoke", cfgapi.apiRevoke)
+
+	//api_polka.go
+	apiR.Post("/polka/webhooks", cfgapi.polkaWebhooks)
 
 	mainR.Mount("/api", apiR)
 

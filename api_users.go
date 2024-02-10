@@ -9,8 +9,9 @@ import (
 )
 
 type userRequestVals struct {
-	Password string `json:"password"`
-	Email    string `json:"email"`
+	Password  string `json:"password"`
+	Email     string `json:"email"`
+	ChirpyRed bool   `json:"is_chirpy_red"`
 }
 
 func (cfg *apiConfig) newUser(w http.ResponseWriter, r *http.Request) {
@@ -48,6 +49,7 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 	type loginResponseVals struct {
 		ID           int    `json:"id"`
 		Email        string `json:"email"`
+		ChirpyRed    bool   `json:"is_chirpy_red"`
 		Token        string `json:"token"`
 		TokenRefresh string `json:"refresh_token"`
 	}
@@ -89,6 +91,7 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, loginResponseVals{
 		ID:           user.ID,
 		Email:        user.Email,
+		ChirpyRed:    user.ChirpyRed,
 		Token:        tokenAccess,
 		TokenRefresh: tokenRefresh,
 	})
