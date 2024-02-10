@@ -108,8 +108,7 @@ func (cfg *apiConfig) putUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reqBody := userRequestVals{}
-	err = json.NewDecoder(r.Body).Decode(&reqBody)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
