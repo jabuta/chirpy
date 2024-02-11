@@ -62,7 +62,7 @@ func (db *DB) RemoveChirp(chid int) (Chirp, error) {
 	return chirp, nil
 }
 
-func (db *DB) GetChirpsList() ([]Chirp, error) {
+func (db *DB) GetChirpsList(uid int) ([]Chirp, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 	memDB, err := db.loadDB()
@@ -70,8 +70,16 @@ func (db *DB) GetChirpsList() ([]Chirp, error) {
 		return []Chirp{}, err
 	}
 	chirpList := make([]Chirp, 0, len(memDB.Chirps))
+	if uid < 1 {
+		for _, chirp := range memDB.Chirps {
+			chirpList = append(chirpList, chirp)
+		}
+		return chirpList, nil
+	}
 	for _, chirp := range memDB.Chirps {
-		chirpList = append(chirpList, chirp)
+		if chirp.AuthorID == uid {
+			chirpList = append(chirpList, chirp)
+		}
 	}
 	return chirpList, nil
 }

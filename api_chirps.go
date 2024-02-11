@@ -85,7 +85,13 @@ func (cfg *apiConfig) deleteChirp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
-	chirps, err := cfg.db.GetChirpsList()
+
+	s := r.URL.Query().Get("author_id")
+	uid, _ := strconv.Atoi(s)
+
+	//note for future me - the top code will go below this to filter the list if necessary.
+	//you also need to modify the database call funciton and store fucntion as the Chirpid store hs faulty logic
+	chirps, err := cfg.db.GetChirpsList(uid)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
