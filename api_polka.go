@@ -31,7 +31,7 @@ func (cfg *apiConfig) polkaWebhooks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user, err := cfg.db.MakeRed(reqBody.Data.UserID)
-	if errors.Is(err, database.UserNotFound) {
+	if errors.Is(err, database.ErrUserNotFound) {
 		respondWithError(w, http.StatusNotFound, "User Not Found")
 		return
 	} else if err != nil {

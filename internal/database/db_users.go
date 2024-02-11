@@ -17,7 +17,7 @@ type ReturnUser struct {
 	ChirpyRed bool   `json:"is_chirpy_red"`
 }
 
-var UserNotFound = errors.New("user Not Found")
+var ErrUserNotFound = errors.New("user Not Found")
 
 func (db *DB) CreateUser(email string, hashedPwd string) (ReturnUser, error) {
 	db.mux.Lock()
@@ -112,7 +112,7 @@ func (db *DB) MakeRed(uid int) (ReturnUser, error) {
 	}
 
 	if user, ok := memDB.Users[uid]; !ok {
-		return ReturnUser{}, UserNotFound
+		return ReturnUser{}, ErrUserNotFound
 	} else {
 		user.ChirpyRed = true
 		memDB.Users[uid] = user
