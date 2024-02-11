@@ -86,13 +86,19 @@ func (cfg *apiConfig) deleteChirp(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 
-	s := r.URL.Query().Get("author_id")
-	uid, _ := strconv.Atoi(s)
+	suid := r.URL.Query().Get("author_id")
+	sort := r.URL.Query().Get("sort")
+	uid, _ := strconv.Atoi(suid)
 
 	chirps, err := cfg.db.GetChirpsList(uid)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+	if sort == "desc" {
+		dscSort(chirps)
+	} else {
+		ascSort(chirps)
 	}
 	respondWithJSON(w, http.StatusOK, chirps)
 }
